@@ -13,6 +13,9 @@ from .utils import gauss, uniform, loguniform, normalize, generate_kinetics
 
 from .generate_viable_ids import unique_ids
 
+N_COLS = 604 #256
+N_ROWS = 1000 #64
+
 class onlineDataGenerator(keras.utils.Sequence):
     '''
     Generates data online for training or benchmarking.
@@ -40,17 +43,17 @@ class onlineDataGenerator(keras.utils.Sequence):
         self.add_noise_irf = True # Adds noise+irf if true
         self.debug_mode = debug_mode
 
-        self.data_t = np.logspace(2, 6, 256)
+        self.data_t = np.logspace(2, 6, N_COLS)
 
         self.range_irf = [50, 10000] # Min, Max values for sigma of the IRF
 
         ## Parameters for the spectra
-        self.x_points = 64 # Pixels along lambda axis
+        self.x_points = 1000 # Pixels along lambda axis
         self.s_m = 1 # mu of width normal distribution
         self.max_gauss = 8 # number of gauss functions per spectrum
 
         ## Parameters for the dynamics
-        self.y_points = 256 # points along tau axis
+        self.y_points = N_COLS # points along tau axis
         self.t_0 = np.array([1, 1000])*1000 # Minimal and maximal values for the lifetimes
 
         self.c_0 = np.array([0, 0, 0, 0, 1]) # Concentrations of the species as t=-inf
@@ -67,13 +70,13 @@ class onlineDataGenerator(keras.utils.Sequence):
 
         # generate arrays for storing data
 
-        self.X = np.zeros([self.batch_size, 256, 64, 1]) # Images
+        self.X = np.zeros([self.batch_size, N_COLS, N_ROWS, 1]) # Images
         self.Y = np.zeros([self.batch_size, 103]) # Kinetic id vectors
 
         if self.debug_mode:
             self.data_K = np.zeros([self.batch_size, 5, 5]) # transfer Matrices
-            self.S = np.zeros([self.batch_size, 5, 64]) # Spectra
-            self.C = np.zeros([self.batch_size, 256, 5]) # Transients (concentration traces)
+            self.S = np.zeros([self.batch_size, 5, N_ROWS]) # Spectra
+            self.C = np.zeros([self.batch_size, N_COLS, 5]) # Transients (concentration traces)
             self.data_irf = np.zeros(self.batch_size) # sigma of the IRF
 
 
@@ -117,7 +120,7 @@ class onlineDataGenerator(keras.utils.Sequence):
                     g /= np.sum(g)
                     g *= amplitude
                     self.data_s[i] += g
-                self.data_s[i] += np.random.normal(0, noise/64, self.x_points)
+                self.data_s[i] += np.random.normal(0, noise/N_ROWS, self.x_points)
             
             # picks class id for the next example
             if self.class_id == None:
@@ -177,14 +180,14 @@ class onlineDataGenerator(keras.utils.Sequence):
             # multipy concentration traces by spectra to yield ta signal
             self.data_pure = np.zeros([self.y_points, self.x_points])
             for i in range(5):
-                self.data_pure += self.data_s[i]*self.plot_c[:,i].reshape([256, 1])
-            self.data_pure -= self.data_s[i]*np.full([256, 1], 1)
+                self.data_pure += self.data_s[i]*self.plot_c[:,i].reshape([N_COLS, 1])
+            self.data_pure -= self.data_s[i]*np.full([N_COLS, 1], 1)
             self.data_noise_n = normalize(self.data_pure)
 
             self.data_y = np.zeros(103)
             self.data_y[class_id] = 1
 
-            self.X[l] = self.data_noise_n.reshape([256, 64, 1])
+            self.X[l] = self.data_noise_n.reshape([N_COLS, N_ROWS, 1])
             self.Y[l] = self.data_y
             if self.debug_mode:
                 self.data_K[l] = self.K
