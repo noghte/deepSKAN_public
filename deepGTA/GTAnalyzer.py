@@ -12,13 +12,15 @@ from .utils import gauss, data_dy, generate_binary_matrix, generate_kinetics
 from .utils import uniform
 from .generate_viable_ids import unique_ids
 
+ROWS, COLS = 604, 650
+
 class GTAnalyzer():
     '''
     Analyzer for classical Global and Target Analysis
     has to be initialized with a 2d-dataset and the corresponding time scale
     '''
     def __init__(self, x, t):
-        self.x_true = x.reshape([256,64])
+        self.x_true = x.reshape([ROWS,COLS])
         self.t = t
 
     def c_irf(self, t, k, u, D):
@@ -44,9 +46,9 @@ class GTAnalyzer():
         if self.iterations%10 == 0:
             print((decays*1000).astype(int)/1000, int(irf), int(tz)/1e6, self.iterations)
 
-        self.c_fit = np.zeros([256, self.num_spectra])
-        self.dads = np.zeros([self.num_spectra, 64])
-        self.x_fit = np.zeros([256, 64])
+        self.c_fit = np.zeros([ROWS, self.num_spectra])
+        self.dads = np.zeros([self.num_spectra, COLS])
+        self.x_fit = np.zeros([ROWS, COLS])
 
         for i in range(self.num_decays):
             self.c_fit[:,i] = self.c_irf(self.t, 1/(decays[i]*1000), 0*tz, irf)
@@ -56,7 +58,7 @@ class GTAnalyzer():
         self.dads = np.dot(np.linalg.pinv(np.nan_to_num(self.c_fit)), self.x_true)
 
         for i in range(self.num_spectra):
-            self.x_fit += self.dads[i]*self.c_fit[:,i].reshape([256, 1])
+            self.x_fit += self.dads[i]*self.c_fit[:,i].reshape([ROWS, 1])
 
         self.iterations += 1
         return self.x_fit
@@ -79,7 +81,7 @@ class GTAnalyzer():
                                  irf_start, 
                                  tz_start])
 
-        self.x_fit = np.zeros([256, 64])
+        self.x_fit = np.zeros([ROWS, COLS])
 
         self.iterations = 0
 
@@ -140,10 +142,10 @@ class GTAnalyzer():
         for dec in permutations(decays):
             data_c, data_s, _ = self.get_ta(class_id, dec, irf)
 
-            x_ta = np.zeros([256, 64])
+            x_ta = np.zeros([ROWS, COLS])
             for i in range(5):
-                x_ta += data_s[i]*data_c[:,i].reshape([256, 1])
-            x_ta -= data_s[i]*np.full([256, 1], 1)
+                x_ta += data_s[i]*data_c[:,i].reshape([ROWS, 1])
+            x_ta -= data_s[i]*np.full([ROWS, 1], 1)
 
             err = np.sum([x**2 for x in np.amax(data_s, axis=0) if x!=0])
             data_p.append(dec)

@@ -3,6 +3,7 @@
 # The training data is generated on the spot by the onlineDataGenerator class
 
 from multiprocessing import freeze_support
+ROWS, COLS = 604, 650
 
 def run():
     import keras
@@ -14,7 +15,7 @@ def run():
     from keras.layers import Reshape, Conv1D, Reshape
     from keras.layers import Input, ReLU, Activation 
     from keras.layers import SeparableConv2D, GlobalAveragePooling2D
-    from keras.layers.merge import concatenate
+    from keras.layers.merge import add
     from keras import layers
     from keras.callbacks import EarlyStopping, ModelCheckpoint 
     from keras import backend as K
@@ -25,8 +26,8 @@ def run():
     batch_size = 16
     epoch_size = 2**16
     val_split = 8
-    learning_rate = 0.0001
-    epochs = 64
+    learning_rate = 0.1 #0.0001
+    epochs = 1 #64
     activation = 'relu'
 
     # Init generators
@@ -47,7 +48,7 @@ def run():
         if project_identity: 
             shortcut = Conv2D(nb_channels, kernel_size=(1, 1), padding='same')(shortcut)
 
-        y = concatenate([shortcut, y])
+        y = add([shortcut, y])
         y = Activation(activation)(y)
 
         return y
@@ -55,11 +56,11 @@ def run():
     # Define the actual model architecture
 
     # input layers
-    input_layer = Input((256, 64, 1), name='input_noise_layer')
+    input_layer = Input((ROWS, COLS, 1), name='input_noise_layer')
     noise = GaussianNoise(0.01)(input_layer)
 
     # Residual blocks along time dimension
-    res = residual_block(noise,64, (15,1), 4)
+    res = residual_block(noise,COLS, (15,1), 4)
     mp = MaxPooling2D((2,1))(res)
 
     res = residual_block(mp, 128, (11,1), 4)
@@ -72,10 +73,10 @@ def run():
     res = residual_block(mp, 128, (9,3), 4, project_identity=False)
     mp = MaxPooling2D((2,2))(res)
 
-    res = residual_block(mp, 256, (5,5), 4)
+    res = residual_block(mp, ROWS, (5,5), 4)
     mp = MaxPooling2D((2,2))(res)
 
-    res = residual_block(mp, 256, (3,3), 4, project_identity=False)
+    res = residual_block(mp, ROWS, (3,3), 4, project_identity=False)
     mp = MaxPooling2D((2,2))(res)
     res = residual_block(mp, 128, (3,3), 2)
 
@@ -88,7 +89,7 @@ def run():
 
     x = Dense(512, activation=activation)(x)
 
-    x = Dense(256, activation=activation)(x)
+    x = Dense(ROWS, activation=activation)(x)
 
     output_layer = Dense(103, activation='softmax', name='ouput_dense_layer')(x)
 
