@@ -15,7 +15,7 @@ def run():
     from keras.layers import Reshape, Conv1D, Reshape
     from keras.layers import Input, ReLU, Activation 
     from keras.layers import SeparableConv2D, GlobalAveragePooling2D
-    from keras.layers.merge import add
+    from keras.layers import concatenate
     from keras import layers
     from keras.callbacks import EarlyStopping, ModelCheckpoint 
     from keras import backend as K
@@ -48,7 +48,7 @@ def run():
         if project_identity: 
             shortcut = Conv2D(nb_channels, kernel_size=(1, 1), padding='same')(shortcut)
 
-        y = add([shortcut, y])
+        y = concatenate([shortcut, y])
         y = Activation(activation)(y)
 
         return y
